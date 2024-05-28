@@ -41,17 +41,29 @@ Forward Camera movement LoRA, trained with 512 X 512 resolution
   <tr>
     <th style="text-align:center;">Input Image</th>
     <th style="text-align:center;">Naive SVD</th>
-    <th style="text-align:center;">Backward LoRA</th>
+    <th style="text-align:center;">Forward LoRA</th>
   </tr>
   <tr>
-    <td style="text-align:center;"><img src=".asset/backward0_image.png" alt="input image" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/naive_backward0.gif" alt="Image 2" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/backward0.gif" alt="Image 3" width="300"/></td>
+    <td style="text-align:center;">
+      <img src=".asset/backward0_image.png" alt="input image" style="width:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/naive_backward0.gif" alt="Image 2" style="width:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/backward0.gif" alt="Image 3" style="width:300px;"/>
+    </td>
   </tr>
   <tr>
-    <td style="text-align:center;"><img src=".asset/backward1_image.png" alt="input image" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/naive_backward1.gif" alt="Image 2" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/backward1.gif" alt="Image 3" width="300"/></td>
+    <td style="text-align:center;">
+      <img src=".asset/backward1_image.png" alt="input image" style="width:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/naive_backward1.gif" alt="Image 2" style="width:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/backward1.gif" alt="Image 3" style="width:300px;"/>
+    </td>
   </tr>
 </table>
 Backward Camera movement LoRA, trained on 512 X 512 resolution
