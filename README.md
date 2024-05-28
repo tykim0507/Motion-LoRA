@@ -11,14 +11,26 @@
     <th style="text-align:center;">Forward LoRA</th>
   </tr>
   <tr>
-    <td style="text-align:center;"><img src=".asset/forward0_image.png" alt="input image" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/naive_forward0.gif" alt="Image 2" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/forward0.gif" alt="Image 3" width="300"/></td>
+    <td style="text-align:center;">
+      <img src=".asset/forward0_image.png" alt="input image" style="width:300px; height:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/naive_forward0.gif" alt="Image 2" style="width:300px; height:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/forward0.gif" alt="Image 3" style="width:300px; height:300px;"/>
+    </td>
   </tr>
   <tr>
-    <td style="text-align:center;"><img src=".asset/forward1_image.png" alt="input image" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/naive_forward1.gif" alt="Image 2" width="300"/></td>
-    <td style="text-align:center;"><img src=".asset/forward1.gif" alt="Image 3" width="300"/></td>
+    <td style="text-align:center;">
+      <img src=".asset/forward1_image.png" alt="input image" style="width:300px; height:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/naive_forward1.gif" alt="Image 2" style="width:300px; height:300px;"/>
+    </td>
+    <td style="text-align:center;">
+      <img src=".asset/forward1.gif" alt="Image 3" style="width:300px; height:300px;"/>
+    </td>
   </tr>
 </table>
 
