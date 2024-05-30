@@ -9,12 +9,12 @@ accelerate launch \
     --max_train_steps=6000 \
     --width=512 \
     --height=512 \
-    --checkpointing_steps=2 --checkpoints_total_limit=30 \
+    --checkpointing_steps=100 --checkpoints_total_limit=30 \
     --learning_rate=1e-4 --lr_warmup_steps=0 \
     --seed=123 \
     --mixed_precision="bf16" \
     --dataset_path="dataset/backward" \
-    --validation_steps=3 \
+    --validation_steps=200 \
     --num_validation_images=1 \
     --validation_image_path="dataset/validation_images" \
     --gradient_checkpointing \
