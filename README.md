@@ -35,13 +35,13 @@
 </table>
 
 
-Forward Camera movement LoRA, trained with 512 X 512 resolution
+Backward Camera movement LoRA, trained with 512 X 512 resolution
 
 <table>
   <tr>
     <th style="text-align:center;">Input Image</th>
     <th style="text-align:center;">Naive SVD</th>
-    <th style="text-align:center;">Forward LoRA</th>
+    <th style="text-align:center;">Backward LoRA</th>
   </tr>
   <tr>
     <td style="text-align:center;">
