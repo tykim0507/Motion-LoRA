@@ -101,19 +101,26 @@ pip install -r requirements.txt
 |:----|:---------|:---------
 |Stable-Video-Diffusion (Text2Video)|1024x576|[Hugging Face](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt-1-1)
 
-I recommend git cloning the huggingface repository using git lfs
+
 ### 2.2 Set file structure
 Store them as following structure:
 ```
 cd MotionLoRA
     .
-    └── models
+    └── checkpoints
         └── stable-video-diffusion-img2vid-xt-1-1
+```
 
+We recommend git cloning the huggingface repository using git lfs.
+```
+mkdir checkpoints
+cd checkpoints
+git lfs install
+git clone https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt-1-1
 ```
 
 ### 3. Prepare video datasets
-I have used the <a href="https://mixkit.co/">Mixkit</a> dataset.  
+We have used the <a href="https://mixkit.co/">Mixkit</a> dataset.  
 You can simply prepare any type of videos, but with similar motion encoded.  
 Actually using 1 video is enough for training the motion LoRA!
 

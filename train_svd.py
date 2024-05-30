@@ -803,7 +803,7 @@ def main():
     # DataLoaders creation:
     args.global_batch_size = args.per_gpu_batch_size * accelerator.num_processes
 
-    train_dataset = TrainDataset(num_samples=30, width=args.width, height=args.height, sample_frames=args.num_frames, data_path = args.dataset_path)
+    train_dataset = TrainDataset(num_samples=None, width=args.width, height=args.height, sample_frames=args.num_frames, data_path = args.dataset_path)
     sampler = RandomSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
