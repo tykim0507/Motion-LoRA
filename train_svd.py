@@ -1227,7 +1227,7 @@ def main():
                                                     wandb.Video(exporting_video, caption=f"{global_step}steps, {idx} th validation", fps=10)
                                                 ],
                                                 "val_image":[
-                                                    wandb.Image(val_img, caption=f"{idx}th Input Image")
+                                                    wandb.Image(val_image, caption=f"{idx}th Input Image")
                                                 ]
                                             }
                                         )
