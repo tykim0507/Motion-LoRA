@@ -177,7 +177,6 @@ tags
 # wandb
 wandb
 outputs
-*.txt
 
 #weights
 *.pkl
