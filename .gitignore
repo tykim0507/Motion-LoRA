@@ -189,3 +189,10 @@ outputs
 
 #scripts
 train_backward.sh
+
+rec_para_train.txt
+rec_para.txt
+
+#checkpoints
+checkpoints
+debug/

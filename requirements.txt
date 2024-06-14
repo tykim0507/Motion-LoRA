@@ -16,3 +16,6 @@ tqdm==4.66.2
 transformers==4.37.1
 wandb==0.16.5
 xformers==0.0.25.post1
+peft==0.11.1
+moviepy
+imageio
