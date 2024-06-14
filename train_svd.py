@@ -94,7 +94,10 @@ class TrainDataset(Dataset):
         self.height = height
         self.sample_frames = sample_frames
         self.data_path = data_path
-        self.num_samples = num_samples if num_samples else len(os.listdir(data_path))
+        self.num_samples = num_samples if num_samples is not None else len(os.listdir(data_path))
+        if self.num_samples > len(os.listdir(data_path)):
+            raise ValueError(
+                f"--num_samples '{num_samples}' is greater than the number of files in the dataset_path '{data_path}'.")
         self.v_decoder = decord.VideoReader
 
     def __len__(self):
@@ -119,7 +122,7 @@ class TrainDataset(Dataset):
         Returns:
             dict: A dictionary containing the 'pixel_values' tensor of shape (16, channels, 320, 512).
         """
-        files = os.listdir(self.data_path)
+        files = sorted(os.listdir(self.data_path))
 
         # Filter out files that end with .mp4
         mp4_files = [os.path.join(self.data_path, file) for file in files if file.endswith('.mp4')]
@@ -265,6 +268,16 @@ def tensor_to_vae_latent(t, vae):
     latents = latents * vae.config.scaling_factor
         
     return latents
+
+
+def encode_vae_image(
+    image: torch.Tensor,
+    vae: AutoencoderKLTemporalDecoder,
+):
+    print(f"vae_image:{image.mean()},{image.std()}")
+    image_latents = vae.encode(image).latent_dist.mode()
+    print(f"vae_image_latents:{image_latents.mean()},{image_latents.std()}")
+    return image_latents
 
 
 def parse_args():
@@ -545,6 +558,12 @@ def parse_args():
         help=("The path to the dataset."),
     )
     parser.add_argument(
+        "--num_samples",
+        type=int,
+        default=None,
+        help=("Number of training samples to use"),
+    )
+    parser.add_argument(
         "--train_lora",
         action="store_true",
         help="Whether to train the temporal LoRA.",
@@ -774,11 +793,13 @@ def main():
     else:
         # Only train the temporal parameters of the unet for image information preservation
         for name, para in unet.named_parameters():
-            if 'temporal_transformer_block' in name:
-                parameters_list.append(para)
-                para.requires_grad = True
-            else:
-                para.requires_grad = False
+            # if 'temporal_transformer_block' in name:
+            #     parameters_list.append(para)
+            #     para.requires_grad = True
+            # else:
+            #     para.requires_grad = False
+            parameters_list.append(para)
+            para.requires_grad = True
     
     optimizer = optimizer_cls(
         parameters_list,
@@ -803,7 +824,7 @@ def main():
     # DataLoaders creation:
     args.global_batch_size = args.per_gpu_batch_size * accelerator.num_processes
 
-    train_dataset = TrainDataset(num_samples=None, width=args.width, height=args.height, sample_frames=args.num_frames, data_path = args.dataset_path)
+    train_dataset = TrainDataset(num_samples=args.num_samples, width=args.width, height=args.height, sample_frames=args.num_frames, data_path = args.dataset_path)
     sampler = RandomSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
@@ -871,7 +892,7 @@ def main():
         pixel_values = _resize_with_antialiasing(pixel_values, (224, 224))
         # We unnormalize it after resizing.
         pixel_values = (pixel_values + 1.0) / 2.0
-
+        print(f"encoding ... : {pixel_values.mean(), pixel_values.std()}")
         # Normalize the image with for CLIP input
         pixel_values = feature_extractor(
             images=pixel_values,
@@ -966,19 +987,43 @@ def main():
                     accelerator.device, non_blocking=True
                 ) #(1, 21, 3, 512, 512)
                 
-                conditional_pixel_values = pixel_values[:, 0:1, :, :, :]
+                #change pixel_values to list of PIL images
+                from PIL import Image
+                debug_pixel_values = pixel_values.squeeze(0).float().cpu().detach()
+                debug_pixel_values = debug_pixel_values.permute(0, 2, 3, 1)
+                debug_pixel_values = debug_pixel_values.numpy()
+                debug_pixel_values = [Image.fromarray(((debug_pixel_values[i] + 1) * 127.5).astype(np.uint8)) for i in range(debug_pixel_values.shape[0])]
+                export_to_gif(debug_pixel_values, f'./debug/{step}.gif', fps=4)
+                
+                #First get the conditional image
+                conditional_image = pixel_values[:, 0:1, :, :, :]
+                # Get the image embedding for cross attention
+                encoder_hidden_states = encode_image(
+                    conditional_image.squeeze(1).float()) #to work properly, pixel_values should be in range of [-1.1]
+                
+                print(f'pure_image: {conditional_image.mean(), conditional_image.std()}')
+                
+                #Encode the video
                 latents = tensor_to_vae_latent(pixel_values, vae)
                 # Sample noise that we'll add to the latents
                 noise = torch.randn_like(latents)
                 bsz = latents.shape[0]
 
-                cond_sigmas = rand_log_normal(shape=[bsz,], loc=-3.0, scale=0.5).to(latents)
+                cond_sigmas = [0.02] #TODO: add stochasity
                 noise_aug_strength = cond_sigmas
-                cond_sigmas = cond_sigmas[:, None, None, None, None]
-                conditional_pixel_values = \
-                    torch.randn_like(conditional_pixel_values) * cond_sigmas + conditional_pixel_values
-                conditional_latents = tensor_to_vae_latent(conditional_pixel_values, vae)[:, 0, :, :, :]
-                conditional_latents = conditional_latents / vae.config.scaling_factor #since in inference, image scaling is not done
+                conditional_noise = torch.randn_like(conditional_image)
+                conditional_image = \
+                    conditional_noise * noise_aug_strength[0] + conditional_image
+                # cond_sigmas = rand_log_normal(shape=[bsz,], loc=-3.0, scale=0.5).to(latents)
+                # noise_aug_strength = cond_sigmas
+                # cond_sigmas = cond_sigmas[:, None, None, None, None]
+                # conditional_image = \
+                #     torch.randn_like(conditional_image) * cond_sigmas + conditional_image
+
+                # print(f'image: {conditional_image.mean(), conditional_image.std()}')
+                concat_latent = encode_vae_image(conditional_image.squeeze(1), vae)
+                # concat_latent = tensor_to_vae_latent(conditional_image, vae)[:, 0, :, :, :]
+                # concat_latent = concat_latent / vae.config.scaling_factor #since in inference, image scaling is not done
 
                 # Sample a random timestep for each image
                 # P_mean=0.7 P_std=1.6
@@ -991,15 +1036,13 @@ def main():
 
                 inp_noisy_latents = noisy_latents / ((sigmas**2 + 1) ** 0.5)
 
-                # Get the image embedding for conditioning.
-                encoder_hidden_states = encode_image(
-                    pixel_values[:, 0, :, :, :].float()) #to work properly, pixel_values should be in range of [-1.1]
 
+                # print(f'image_embeddings:{encoder_hidden_states.mean(), encoder_hidden_states.std()}')
                 # Here I input a fixed numerical value for 'motion_bucket_id', which is not reasonable.
                 # However, I am unable to fully align with the calculation method of the motion score,
                 # so I adopted this approach. The same applies to the 'fps' (frames per second).
                 added_time_ids = _get_add_time_ids(
-                    7, # fixed
+                    6, # fixed
                     127, # motion_bucket_id = 127, fixed
                     noise_aug_strength, # noise_aug_strength == cond_sigmas
                     encoder_hidden_states.dtype,
@@ -1019,7 +1062,7 @@ def main():
                     encoder_hidden_states = torch.where(
                         prompt_mask, null_conditioning.unsqueeze(1), encoder_hidden_states.unsqueeze(1))
                     # Sample masks for the original images.
-                    image_mask_dtype = conditional_latents.dtype
+                    image_mask_dtype = concat_latent.dtype
                     image_mask = 1 - (
                         (random_p >= args.conditioning_dropout_prob).to(
                             image_mask_dtype)
@@ -1027,33 +1070,36 @@ def main():
                     )
                     image_mask = image_mask.reshape(bsz, 1, 1, 1)
                     # Final image conditioning.
-                    conditional_latents = image_mask * conditional_latents
+                    concat_latent = image_mask * concat_latent
                 else:
                     encoder_hidden_states = encoder_hidden_states.unsqueeze(1)
-                # Concatenate the `conditional_latents` with the `noisy_latents`.
-                conditional_latents = conditional_latents.unsqueeze(
+                # Concatenate the `concat_latent` with the `noisy_latents`.
+                concat_latent = concat_latent.unsqueeze(
                     1).repeat(1, noisy_latents.shape[1], 1, 1, 1)
-                inp_noisy_latents = torch.cat(
-                    [inp_noisy_latents, conditional_latents], dim=2)
                 
-
+                # print(f'inp_noisy_latents: {inp_noisy_latents.mean(), inp_noisy_latents.std()}')
+                # print(f'concat_latent: {concat_latent.mean(), concat_latent.std()}')
+                inp_noisy_latents = torch.cat(
+                    [inp_noisy_latents, concat_latent], dim=2)
+                
+                
                 # check https://arxiv.org/abs/2206.00364(the EDM-framework) for more details.
                 target = latents
                 model_pred = unet(
                     inp_noisy_latents, timesteps, encoder_hidden_states, added_time_ids=added_time_ids).sample
                 # Denoise the latents
+                # print(f'model_pred: {model_pred.mean(), model_pred.std()}')
                 c_out = -sigmas / ((sigmas**2 + 1)**0.5)
                 c_skip = 1 / (sigmas**2 + 1)
                 denoised_latents = model_pred * c_out + c_skip * noisy_latents
                 weighing = (1 + sigmas ** 2) * (sigmas**-2.0)
-
                 # MSE loss
                 loss = torch.mean(
                     (weighing.float() * (denoised_latents.float() -
                      target.float()) ** 2).reshape(target.shape[0], -1),
                     dim=1,
-                )
-                loss = loss.mean()
+                ) #calculate the loss w.r.t. batch dim
+                loss = loss.mean() #average over the batch dim
 
                 # Gather the losses across all processes for logging (if we use distributed training).
                 avg_loss = accelerator.gather(
@@ -1214,23 +1260,23 @@ def main():
                                 export_to_gif(video_frames, out_file, 8)
                                 export_to_gif(naive_video_frames, naive_out_file, 8)
                                 
-                                for tracker in accelerator.trackers:
-                                    if tracker.name == "tensorboard":
-                                        np_videos = np.stack([np.asarray(vid) for vid in video_frames])
-                                        tracker.writer.add_video("validation", np_videos, global_step, fps=10)
-                                    if tracker.name == "wandb":
-                                        exporting_video = np.array(video_frames)
-                                        exporting_video = np.transpose(exporting_video, (0, 3, 1, 2))
-                                        tracker.log(
-                                            {
-                                                "val_video": [
-                                                    wandb.Video(exporting_video, caption=f"{global_step}steps, {idx} th validation", fps=10)
-                                                ],
-                                                "val_image":[
-                                                    wandb.Image(val_img, caption=f"{idx}th Input Image")
-                                                ]
-                                            }
-                                        )
+                                # for tracker in accelerator.trackers:
+                                #     if tracker.name == "tensorboard":
+                                #         np_videos = np.stack([np.asarray(vid) for vid in video_frames])
+                                #         tracker.writer.add_video("validation", np_videos, global_step, fps=10)
+                                #     if tracker.name == "wandb":
+                                #         exporting_video = np.array(video_frames)
+                                #         exporting_video = np.transpose(exporting_video, (0, 3, 1, 2))
+                                #         tracker.log(
+                                #             {
+                                #                 "val_video": [
+                                #                     wandb.Video(exporting_video, caption=f"{global_step}steps, {idx} th validation", fps=10)
+                                #                 ],
+                                #                 "val_image":[
+                                #                     wandb.Image(val_image, caption=f"{idx}th Input Image")
+                                #                 ]
+                                #             }
+                                #         )
 
                         if args.use_ema:
                             # Switch back to the original UNet parameters.

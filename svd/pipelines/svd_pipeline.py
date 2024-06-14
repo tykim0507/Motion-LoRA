@@ -158,7 +158,7 @@ class StableVideoDiffusionPipeline(DiffusionPipeline, LoraLoaderMixin):
         image = _resize_with_antialiasing(image, (224, 224))
         image = (image + 1.0) / 2.0
 
-        
+        # print(f"encoding ... : {image.mean(), image.std()}")
         # Normalize the image with for CLIP input
         image = self.feature_extractor(
             images=image,
@@ -195,9 +195,10 @@ class StableVideoDiffusionPipeline(DiffusionPipeline, LoraLoaderMixin):
         num_videos_per_prompt: int,
         do_classifier_free_guidance: bool,
     ):
+        print(f"vae_image:{image.mean()},{image.std()}")
         image = image.to(device=device)
         image_latents = self.vae.encode(image).latent_dist.mode()
-
+        print(f"vae_image_latents:{image_latents.mean()},{image_latents.std()}")
         if do_classifier_free_guidance:
             negative_image_latents = torch.zeros_like(image_latents)
 
@@ -449,16 +450,18 @@ class StableVideoDiffusionPipeline(DiffusionPipeline, LoraLoaderMixin):
         # NOTE: Stable Video Diffusion was conditioned on fps - 1, which is why it is reduced here.
         # See: https://github.com/Stability-AI/generative-models/blob/ed0997173f98eaf8f4edf7ba5fe8f15c6b877fd3/scripts/sampling/simple_video_sample.py#L188
         fps = fps - 1
-
+        # print(f"image_embeddings: {image_embeddings[1].mean(), image_embeddings[1].std()}")
         # 4. Encode input image using VAE
         image = self.image_processor.preprocess(image, height=height, width=width).to(device)
+        print(f"pure image: {image.mean(), image.std()}")
+        print(noise_aug_strength)
         noise = randn_tensor(image.shape, generator=generator, device=device, dtype=image.dtype)
         image = image + noise_aug_strength * noise
 
         needs_upcasting = self.vae.dtype == torch.float16 and self.vae.config.force_upcast
         if needs_upcasting:
             self.vae.to(dtype=torch.float32)
-        
+        # print(f'image: {image.mean(), image.std()}')
         image_latents = self._encode_vae_image(
             image,
             device=device,
@@ -466,7 +469,7 @@ class StableVideoDiffusionPipeline(DiffusionPipeline, LoraLoaderMixin):
             do_classifier_free_guidance=self.do_classifier_free_guidance,
         )
         image_latents = image_latents.to(image_embeddings.dtype)
-        
+        # print(f"image_latents: {image_latents[1].mean(), image_latents[1].std()}")
         # cast back to fp16 if needed
         if needs_upcasting:
             self.vae.to(dtype=torch.float16)

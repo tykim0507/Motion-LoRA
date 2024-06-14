@@ -18,7 +18,8 @@ accelerate launch \
     --gradient_checkpointing \
     --enable_xformers_memory_efficient_attention \
     --num_frames=21 \
-    --output_dir='./LoRA_forward' \
+    --output_dir='./LoRA_forward_onepoint' \
     --train_lora \
     --rank=16 \
+    --num_samples=1 \
     --report_to "wandb" 
