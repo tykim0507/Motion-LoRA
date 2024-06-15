@@ -144,4 +144,6 @@ sh train.sh
 Our codebase builds on [Stable Video Diffusion](https://github.com/Stability-AI/generative-models).
 Thanks to the authors for sharing their codebases!
 
-Additionally, GPU and NFS resources for training are supported by [far.ai](fal.ai)🔥. 
+Additionally, GPU and NFS resources for training are supported by [fal.ai](fal.ai)🔥. 
+
+Feel free to refer to the [fal Research Grants](https://fal.ai/grants)!
