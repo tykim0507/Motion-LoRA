@@ -192,6 +192,7 @@ train_backward.sh
 
 rec_para_train.txt
 rec_para.txt
+train_onepoint.sh
 
 #checkpoints
 checkpoints
