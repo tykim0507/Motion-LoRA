@@ -141,5 +141,7 @@ sh train.sh
 
 
 ## 🤓 Acknowledgements
-Our codebase builds on [Stable Video Diffusion](https://github.com/Stability-AI/generative-models)
-Thanks to the authors for sharing their codebases
+Our codebase builds on [Stable Video Diffusion](https://github.com/Stability-AI/generative-models).
+Thanks to the authors for sharing their codebases!
+
+Additionally, GPU and NFS resources for training are supported by [far.ai](fal.ai)🔥. 
